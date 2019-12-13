@@ -14,7 +14,7 @@ ofxNDI
 
 
 ## Device ##
-
+*	magewell : Pro Convert HDMI Plus
 
 ## note ##
 

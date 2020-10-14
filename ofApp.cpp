@@ -11,6 +11,12 @@ using namespace std;
 
 /******************************
 ******************************/
+ofApp::ofApp(){
+	font.load("font/RictyDiminished-Regular.ttf", 15, true, true, true);
+}
+	
+/******************************
+******************************/
 void ofApp::setup(){	
 	/********************
 	********************/
@@ -27,9 +33,13 @@ void ofApp::setup(){
 	
 	ofSetEscapeQuitsApp(false);
 	
-	
 	/********************
 	********************/
+#ifdef AS_GRABBER	
+	grabber_.setUseTexture(true);
+	grabber_.setup();
+	
+#else
 	NDIlib_initialize();
 	
 	auto findSource = [](const string &name_or_url) {
@@ -66,14 +76,18 @@ void ofApp::setup(){
 	
 	/********************
 	********************/
-	// string name_or_url = "";	// Specify name or address of expected NDI source. In case of blank or not found, receiver will grab default(which is found first) source.
-	string name_or_url = "169.254.11.144";	// 実験して取得した結果を入れてみた -> 動作OK.
+	string name_or_url = "";	// Specify name or address of expected NDI source. In case of blank or not found, receiver will grab default(which is found first) source.
+	// string name_or_url = "169.254.11.144";	// 実験して取得した結果を入れてみた -> 動作OK.
 	
 	auto result = findSource(name_or_url);
 	if(result.second ? receiver_.setup(result.first) : receiver_.setup()) {
 		video_.setup(receiver_);
 	}
 	
+#endif
+	
+	/********************
+	********************/
 	printf("Fin : setup\n");
 	fflush(stdout);
 }
@@ -81,6 +95,20 @@ void ofApp::setup(){
 /******************************
 ******************************/
 void ofApp::update(){
+	now = ofGetElapsedTimeMillis();
+	
+	float alpha = 0.03;
+	
+#ifdef AS_GRABBER
+	grabber_.update();
+	if(grabber_.isFrameNew()){
+		float Current_Cam_FrameRate = 1000.0/(float)(now - t_LastCamUpdate);
+		Cam_FrameRate = alpha * Current_Cam_FrameRate + (1 - alpha) * Cam_FrameRate;
+		
+		t_LastCamUpdate = now;
+	}
+	
+#else	
 	if(receiver_.isConnected()) {
 		video_.update();
 		if(video_.isFrameNew()) {
@@ -88,9 +116,20 @@ void ofApp::update(){
 			起動直後、ofxNDIFrame.cpp内の、VideoFrame::decode()にあるWarningが出るが、
 			しばらくすると、"FourCC"が定義されて(どこかは不明のまま)、問題なく動作を始める。
 			********************/
-			video_.decodeTo(pixels_);
+			// video_.decodeTo(pixels_);
+			video_.decodeTo(img.getPixels());
+			
+			/********************
+			********************/
+			float Current_Cam_FrameRate = 1000.0/(float)(now - t_LastCamUpdate);
+			Cam_FrameRate = alpha * Current_Cam_FrameRate + (1 - alpha) * Cam_FrameRate;
+			
+			t_LastCamUpdate = now;
 		}
-	}	
+	}
+#endif
+
+	App_FrameRate = alpha * App_FrameRate + (1 - alpha) * ofGetFrameRate();
 }
 
 /******************************
@@ -99,9 +138,28 @@ void ofApp::draw(){
 	ofBackground(0);
 	ofSetColor(255);
 	
+#ifdef AS_GRABBER
+	grabber_.draw(0, 0, ofGetWidth(), ofGetHeight());
+	
+#else
+	/*
 	if(pixels_.isAllocated()) {
 		ofImage(pixels_).draw(0, 0, ofGetWidth(), ofGetHeight());
 	}
+	*/
+	if(img.isAllocated()){
+		img.update();
+		img.draw(0, 0, ofGetWidth(), ofGetHeight());
+	}
+#endif
+	
+	/********************
+	********************/
+	ofSetColor(0, 100, 255, 255);
+	
+	char buf[512];
+	sprintf(buf, "(App, Cam) = (%5.1f, %5.1f)", App_FrameRate, Cam_FrameRate);
+	font.drawString(buf, 10, 30);
 }
 
 /******************************
@@ -109,7 +167,12 @@ void ofApp::draw(){
 void ofApp::keyPressed(int key){
 	switch(key){
 		case 'a':
-			printf("imageType = %d: (%d, %d)\n", pixels_.getImageType(), pixels_.getWidth(), pixels_.getHeight());
+#ifdef AS_GRABBER
+			printf("(%.1f, %.1f\n)", grabber_.getWidth(), grabber_.getHeight());
+#else
+			// printf("imageType = %d: (%d, %d)\n", pixels_.getImageType(), pixels_.getWidth(), pixels_.getHeight());
+			printf("imageType = %d: (%d, %d)\n", img.getImageType(), img.getWidth(), img.getHeight());
+#endif
 			fflush(stdout);
 			break;
 	}

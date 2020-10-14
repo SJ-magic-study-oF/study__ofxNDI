@@ -1,4 +1,7 @@
 /************************************************************
+■MAGEWELL
+	https://magewell.dpsj.co.jp/pro-convert-family?gclid=Cj0KCQjwwb3rBRDrARIsALR3XeaY23VtNGaqxMZDp13v-aTIrqQOYfgiOn3QWtaLxeRWqWcJQ4QOUH4aAsm8EALw_wcB
+	
 ■nariakiiwatani/ofxNDI
 	https://github.com/nariakiiwatani/ofxNDI
 	
